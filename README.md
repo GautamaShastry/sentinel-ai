@@ -1,47 +1,141 @@
-# Sentinel AI (gRPC + Redpanda + YOLO + FastAPI + Postgres)
+# Sentinel AI - Real-Time Video Surveillance System
 
-A real-time video analytics pipeline:
-- gRPC streaming ingestion (Go)
-- Buffering + scaling via Redpanda (Kafka API)
-- YOLO inference worker (Python) with DLQ
-- Results API (FastAPI) persisting to Postgres + live SSE stream
-- Prometheus metrics
+Real-time video analytics pipeline with AI-powered object detection, alerts for electronics, and GPU acceleration support.
 
-## Run
+## Architecture
 
-1) Generate protobufs
-```bash
-make gen
+```
+┌─────────────┐     ┌──────────┐     ┌─────────────┐     ┌────────────┐
+│   Webcam    │────►│ Ingestor │────►│   Kafka     │────►│ AI Worker  │
+│   Client    │     │   (Go)   │     │ (Redpanda)  │     │  (YOLO)    │
+└─────────────┘     └──────────┘     └─────────────┘     └─────┬──────┘
+                                                               │
+┌─────────────┐     ┌──────────┐     ┌─────────────┐           │
+│  Frontend   │◄────│Result API│◄────│  Postgres   │◄──────────┘
+│   (React)   │     │ (FastAPI)│     │             │
+└─────────────┘     └──────────┘     └─────────────┘
 ```
 
-2) Start stack
+## Features
+
+- **Real-time object detection** using YOLOv8
+- **Electronics alerts** - Detects phones, laptops, TVs, etc. and triggers alerts
+- **Video clip storage** - Saves frames when electronics detected
+- **Analytics dashboard** - Object counts, timeline, detection history
+- **GPU acceleration** - Run on HPC clusters for 50x speedup
+- **Auto-cleanup** - Prevents database/storage explosion
+
+## Quick Start (Local)
+
 ```bash
+# Start all services
 make up
-```
 
-3) Start webcam client (local machine)
-```bash
+# Run webcam client
 cd client-webcam
 pip install -r requirements.txt
-export GRPC_TARGET=localhost:50051
-export CAMERA_ID=camera_1
-export FPS=25
 python client.py
 ```
 
-## Query results
+**Access:**
+- Frontend: http://localhost:3000
+- Grafana: http://localhost:3001 (admin/sentinel)
+- Prometheus: http://localhost:9090
+- API: http://localhost:8080
 
-- Health: http://localhost:8080/health
-- Cameras: http://localhost:8080/cameras
-- Latest: http://localhost:8080/latest?camera_id=camera_1
-- History: http://localhost:8080/detections?camera_id=camera_1&since_ms=0&limit=25
-- Live SSE stream:
+## API Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `/cameras` | List active cameras |
+| `/latest?camera_id=X` | Latest detection with image |
+| `/detections?camera_id=X` | Detection history |
+| `/alerts` | All alerts |
+| `/alerts/recent` | Recent alerts (fast) |
+| `/analytics/summary?camera_id=X` | Detection stats |
+| `/analytics/electronics` | Electronics detection stats |
+| `/analytics/timeline?camera_id=X` | Time-series data |
+
+## GPU Acceleration (HPC/Hopper)
+
+For much faster inference, run the AI worker on a GPU cluster.
+
+### Setup
+
+1. **On your PC** - Keep services running, stop local AI worker:
+   ```bash
+   make up
+   docker stop infra-ai-worker-1
+   ```
+
+2. **SSH to cluster with tunnel:**
+   ```bash
+   ssh -R 19092:localhost:19092 username@hopper.orc.gmu.edu
+   ```
+
+3. **On cluster:**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/sentinel-ai.git
+   cd sentinel-ai/ai-worker-python
+   
+   # Load modules and setup
+   module load python/3.8.6-ff
+   module load cuda
+   python -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   
+   # Submit job
+   sbatch run_hopper.sh
+   ```
+
+4. **Back on PC** - Run webcam client:
+   ```bash
+   cd client-webcam
+   python client.py
+   ```
+
+### Slurm Job Script
+
 ```bash
-curl http://localhost:8080/stream/detections?camera_id=camera_1
+#SBATCH --partition=gpuq
+#SBATCH --qos=gpu
+#SBATCH --gres=gpu:A100.40gb:1
+#SBATCH --time=04:00:00
+#SBATCH --mem=16G
 ```
 
-## Metrics
+## Configuration
 
-- Prometheus: http://localhost:9090
-- Ingestor metrics: http://localhost:9100/metrics
-- Worker metrics: http://localhost:9101/metrics
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `YOLO_MODEL` | yolov8n.pt | Model: n/s/m/l/x |
+| `FPS` | 10 | Webcam frame rate |
+| `ALERT_COOLDOWN_SEC` | 10 | Seconds between alerts |
+| `CLIP_COOLDOWN_SEC` | 5 | Seconds between clip saves |
+| `MAX_CLIPS_PER_CAMERA` | 500 | Max stored clips |
+| `DETECTION_RETENTION_HOURS` | 24 | DB cleanup interval |
+
+## Project Structure
+
+```
+sentinel-ai/
+├── client-webcam/       # Python webcam client
+├── ingestor-go/         # Go gRPC server
+├── ai-worker-python/    # YOLO inference worker
+├── result-api/          # FastAPI backend
+├── frontend/            # React dashboard
+├── infra/               # Docker Compose, Prometheus, Grafana
+└── proto/               # Protobuf definitions
+```
+
+## Tech Stack
+
+- **Ingestor**: Go, gRPC, Kafka producer
+- **Message Queue**: Redpanda (Kafka-compatible)
+- **AI Worker**: Python, YOLOv8, OpenCV
+- **API**: FastAPI, PostgreSQL
+- **Frontend**: React, Vite
+- **Monitoring**: Prometheus, Grafana

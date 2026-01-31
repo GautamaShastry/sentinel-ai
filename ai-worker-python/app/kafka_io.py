@@ -28,7 +28,9 @@ def headers_to_dict(headers):
             d[k] = str(v)
     return d
 
-def produce_json(producer: Producer, topic: str, key: str, payload: dict, headers: dict | None = None):
+from typing import Optional
+
+def produce_json(producer: Producer, topic: str, key: str, payload: dict, headers: Optional[dict] = None):
     hdrs = []
     if headers:
         hdrs = [(k, str(v).encode("utf-8")) for k, v in headers.items()]

@@ -3,7 +3,8 @@
 #SBATCH --output=sentinel-%j.out
 #SBATCH --error=sentinel-%j.err
 #SBATCH --partition=gpuq
-#SBATCH --gres=gpu:1
+#SBATCH --qos=gpu
+#SBATCH --gres=gpu:A100.40gb:1
 #SBATCH --time=04:00:00
 #SBATCH --mem=16G
 
@@ -13,7 +14,7 @@ echo "Node: $SLURMD_NODENAME"
 
 # Load modules
 module load python/3.11
-module load cuda/12.0
+module load cuda
 
 # Setup virtual environment
 if [ ! -d "venv" ]; then
@@ -25,7 +26,7 @@ source venv/bin/activate
 pip install --upgrade pip -q
 pip install -r requirements.txt -q
 
-# Kafka via SSH tunnel (localhost because of -R tunnel)
+# Kafka via SSH tunnel
 export KAFKA_BOOTSTRAP="localhost:19092"
 export RAW_FRAMES_TOPIC="raw-frames"
 export DETECTIONS_TOPIC="detections"
@@ -41,5 +42,4 @@ echo "Kafka: $KAFKA_BOOTSTRAP"
 echo "Model: $YOLO_MODEL"
 nvidia-smi
 
-# Run worker
 python -m app.worker
