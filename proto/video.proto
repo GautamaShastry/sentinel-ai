@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package video;
+option go_package = "sentinel-ai/ingestor-go/pb";
+
+service VideoStreamer {
+    rpc UploadVideo(stream FrameRequest) returns (UploadStatus);
+}
+
+message FrameRequest {
+    string camera_id = 1;
+    string frame_id = 2; // UUID
+    int64 timestamp_ms = 3;  // epoch ms
+    int64 sequence_number = 4;   // per camera monotonic
+    string encoding = 5;      // "jpeg"
+    bytes image_data = 6;     // JPEG bytes 
+}
+
+message UploadStatus {
+    string message = 1;
+    bool success = 2;
+    int32 recommended_fps = 3; //simple backpressure hint
+}

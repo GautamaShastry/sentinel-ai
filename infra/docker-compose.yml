@@ -1,0 +1,103 @@
+services:
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:latest
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp
+      - "1"
+      - --memory
+      - "1G"
+      - --reserve-memory
+      - "0M"
+      - --kafka-addr
+      - internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr
+      - internal://redpanda:9092,external://localhost:19092
+    ports:
+      - "19092:19092"
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: sentinel
+      POSTGRES_DB: sentinel
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  ingestor:
+    build:
+      context: ../ingestor-go
+    environment:
+      GRPC_ADDR: "0.0.0.0:50051"
+      KAFKA_BROKERS: "redpanda:9092"
+      RAW_FRAMES_TOPIC: "raw-frames"
+      METRICS_ADDR: "0.0.0.0:9100"
+    depends_on:
+      - redpanda
+    ports:
+      - "50051:50051"
+      - "9100:9100"
+
+  ai-worker:
+    build:
+      context: ../ai-worker-python
+    environment:
+      KAFKA_BOOTSTRAP: "redpanda:9092"
+      RAW_FRAMES_TOPIC: "raw-frames"
+      DETECTIONS_TOPIC: "detections"
+      ALERTS_TOPIC: "alerts"
+      DLQ_TOPIC: "raw-frames-dlq"
+      GROUP_ID: "ai-group"
+      METRICS_PORT: "9101"
+      YOLO_MODEL: "yolov8n.pt"
+    volumes:
+      - ../clips:/app/clips
+    depends_on:
+      - redpanda
+    ports:
+      - "9101:9101"
+
+  result-api:
+    build:
+      context: ../result-api
+    environment:
+      KAFKA_BOOTSTRAP: "redpanda:9092"
+      DETECTIONS_TOPIC: "detections"
+      GROUP_ID: "result-api-group"
+      DATABASE_URL: "postgresql://sentinel:sentinel@postgres:5432/sentinel"
+      HOST: "0.0.0.0"
+      PORT: "8080"
+    depends_on:
+      - redpanda
+      - postgres
+    ports:
+      - "8080:8080"
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - ingestor
+      - ai-worker
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: sentinel
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    ports:
+      - "3001:3000"

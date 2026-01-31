@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+*.egg-info/
+.eggs/
+*.egg
+pip-log.txt
+
+# Node
+node_modules/
+dist/
+build/
+.npm
+.pnpm-store/
+package-lock.json
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Project specific
+clips/
+*.pt
+*.onnx
+*.log
+*.out
+*.err
+sentinel-*.out
+sentinel-*.err
+
+# Docker volumes data
+infra/postgres/data/
+infra/grafana/data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Environment
+.env
+.env.local
+*.local
+
+# Slurm
+slurm-*.out
+
+# Temp
+tmp/
+temp/
+*.tmp
+*.bak
