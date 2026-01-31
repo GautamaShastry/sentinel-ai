@@ -131,6 +131,18 @@ sentinel-ai/
 └── proto/               # Protobuf definitions
 ```
 
+## Performance Benchmarks
+
+| Setup | Model | Inference | FPS | Notes |
+|-------|-------|-----------|-----|-------|
+| Local CPU | yolov8m | ~500ms | ~2 | MacBook/PC |
+| Hopper GPU (A100) | yolov8m | 16.1ms | 24.3 | GMU HPC cluster |
+
+**Batch Processing Test (Hopper A100):**
+- Video: 1920x1080 @ 29 FPS, 293 frames
+- Total time: 12.1s
+- Electronics detected: 117 frames
+
 ## Tech Stack
 
 - **Ingestor**: Go, gRPC, Kafka producer

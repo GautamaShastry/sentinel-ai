@@ -1,0 +1,4 @@
+# Minimal requirements for batch processing (no Kafka)
+ultralytics>=8.0.0
+opencv-python-headless>=4.8.0
+numpy>=1.24.0
