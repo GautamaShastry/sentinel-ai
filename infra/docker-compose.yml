@@ -54,7 +54,15 @@ services:
       DLQ_TOPIC: "raw-frames-dlq"
       GROUP_ID: "ai-group"
       METRICS_PORT: "9101"
+      # Model config
       YOLO_MODEL: "yolov8n.pt"
+      YOLO_IMGSZ: "224"
+      # Inference backend: auto, openvino, int8, onnx, yolo
+      INFERENCE_BACKEND: "auto"
+      # CPU optimizations
+      FRAME_SKIP: "3"
+      ASYNC_PROCESSING: "true"
+      NUM_INFERENCE_WORKERS: "2"
     volumes:
       - ../clips:/app/clips
     depends_on:

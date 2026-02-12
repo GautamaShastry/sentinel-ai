@@ -183,7 +183,7 @@ const file_video_proto_rawDesc = "" +
 	"\asuccess\x18\x02 \x01(\bR\asuccess\x12'\n" +
 	"\x0frecommended_fps\x18\x03 \x01(\x05R\x0erecommendedFps2J\n" +
 	"\rVideoStreamer\x129\n" +
-	"\vUploadVideo\x12\x13.video.FrameRequest\x1a\x13.video.UploadStatus(\x01B\x1fZ\x1dsentinel-ai/ingestor-go/pb;pbb\x06proto3"
+	"\vUploadVideo\x12\x13.video.FrameRequest\x1a\x13.video.UploadStatus(\x01B\x1cZ\x1asentinel-ai/ingestor-go/pbb\x06proto3"
 
 var (
 	file_video_proto_rawDescOnce sync.Once
